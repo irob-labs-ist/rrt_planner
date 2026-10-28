@@ -73,8 +73,8 @@ double * RRTPlanner::sampleRandomPoint() {
      * Implement your code here
      **************************/
 
-    rand_point_[0] = // ... ;
-    rand_point_[1] = // ... ;
+    rand_point_[0] = 0.0;  // TODO: implement
+    rand_point_[1] = 0.0;  // TODO: implement
 
     return rand_point_;
 }
@@ -85,8 +85,8 @@ double * RRTPlanner::extendTree(const double * point_nearest, const double * poi
      * Implement your code here
      **************************/
 
-    candidate_point_[0] = // ... ;
-    candidate_point_[1] = // ... ;
+    candidate_point_[0] = 0.0;  // TODO: implement
+    candidate_point_[1] = 0.0;  // TODO: implement
 
     return candidate_point_;
 }
