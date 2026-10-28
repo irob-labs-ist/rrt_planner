@@ -1,56 +1,109 @@
-# rrt_planner
-The `rrt_planner` ROS package provides a framework to implement sampling based motion planners (`RRT` and its variants) as global planner plugin for `move_base`, a ROS framework. Please refer to http://wiki.ros.org/move_base, for a detailed description of the `move_base` framework.
+# rrt_planner — ROS 2
+
+Framework to implement RRT global planners as a plugin for **Nav2** (Navigation2), the ROS 2 navigation stack.
+
+> **Mini-Project 2 — Task 1b**  
+> Clone this repository, implement the skeleton functions, and run the RRT planner as a Nav2 global planner plugin. Refer to the Nav2 plugin tutorial at https://docs.nav2.org/plugin_tutorials/docs/writing_new_nav2planner_plugin.html
 
 ## Demo
-![](media/rrt_turtlebot_rviz.gif)
 
-## Install Dependencies and Build
+![RRT planner demo](media/rrt_turtlebot_rviz.gif)
+
+## Plugin interface
+
+This package implements `nav2_core::GlobalPlanner`. The planner server loads it at runtime via `pluginlib`. The entry point is `rrt_planner::RRTPlannerROS`, which inherits the Nav2 lifecycle interface:
+
+| Method | Purpose |
+|---|---|
+| `configure()` | Called on plugin load — reads parameters, creates publisher, instantiates the planner |
+| `activate()` | Called on server activation — activates the publisher |
+| `deactivate()` | Called on server deactivation |
+| `cleanup()` | Called on unload — releases resources |
+| `createPlan(start, goal)` | Called each time Nav2 needs a global path — returns `nav_msgs::msg::Path` |
+
+## Files to implement
+
+Students must fill in the `/** Implement your code here **/` sections in:
+
+- `src/rrt_planner.cpp` — `getNearestNodeId()`, `createNewNode()`, `sampleRandomPoint()`, `extendTree()`
+- `src/collision_detector.cpp` — `inFreeSpace()`
+
+The Nav2 interface (`rrt_planner_ros.cpp`) and the ROS 2 build system (`CMakeLists.txt`, `package.xml`) are already complete.
+
+## Install dependencies and build
+
 ```bash
-cd ~/catkin_ws/src
-git clone https://github.com/irob-labs-ist/rrt_planner.git
-cd .. && rosdep install --from-paths src --ignore-src -r -y
-catkin_make
-source devel/setup.bash
+cd ~/ros2_ws/src
+git clone https://github.com/irob-labs-ist/rrt_planner.git -b ros2
+
+cd ~/ros2_ws
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --packages-select rrt_planner
+source install/setup.bash
 ```
 
 ## Usage
-Within the [move_base](https://wiki.ros.org/move_base) node in your launch file, set the `base_global_planner` parameter to `rrt_planner/RRTPlannerROS` and load the required parameters.
-```xml
-<param name="base_global_planner" value="rrt_planner/RRTPlannerROS"/>
-<rosparam file="$(find rrt_planner)/config/rrt_planner.yaml" command="load" />
+
+### 1. Run the full navigation stack with the RRT planner
+
+Provide the map produced in Mini-Project 1.
+
+**TurtleBot 3:**
+```bash
+ros2 launch rrt_planner rrt_turtlebot.launch.py \
+    map:=/path/to/map.yaml \
+    use_sim_time:=true        # set false for a real robot
 ```
 
-After launching the system, when you set a `move_base/goal` using RViz's `2D Nav Goal` or with an action client, the `RRTPlannerROS` will be called. The global path will be published as a topic for visualization in RViz. Add a `Path` display and subscribe to `~/move_base/RRTPlannerROS/global_plan`.
+**TurtleBot 4:**
+```bash
+ros2 launch rrt_planner rrt_turtlebot.launch.py \
+    map:=/path/to/map.yaml \
+    turtlebot:=4 \
+    use_sim_time:=true
+```
 
-## Examples
-An example launch file for using `RRTPlannerROS` is located in [rrt_planner/launch](launch/). An example RViz config file for using `RRTPlannerROS` with the [TurtleBot3 Simulation](https://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/) is located in [rrt_planner/rviz](rviz/rrt_turtlebot_sim.rviz).
+This starts Nav2 (`planner_server`, `controller_server`, `amcl`, `map_server`, …) with `rrt_planner/RRTPlannerROS` set as the global planner.
 
-## Troubleshooting
-If you find that the RRT planner continues to produce plans even after a solution has been found, try setting the `/move_base/planner_frequency` to 0. Zero is normally what the default value is (see `planner_frequency` on the [move_base Wiki](http://wiki.ros.org/move_base)), but that's not what the value is in the turtlebot examples. If you're running the turtlebot examples, you can change the parameter in `turtlebot3_navigation/param/move_base_params.yaml`.
+### 2. Set a goal in RViz2
 
-If you see that the RRT planner repeatedly fails to find a solution, you may want to play around with the parameters in the [rrt_planner.yaml](config/rrt_planner.yaml) configuration file.
+Use the **2D Goal Pose** tool in RViz2 to send a `NavigateToPose` goal. The RRT planner will be called and the resulting path published on the `/plan` topic.
 
-## ROS API
-### Published Topics
-`~/move_base/RRTPlannerROS/global_plan` ([nav_msgs/Path](http://docs.ros.org/api/nav_msgs/html/msg/Path.html))
-- The global path constructed by the planner. Used for visualization purposes.
+### 3. Set a goal programmatically (Task 2a)
 
-### Subscribed Topics
-None.
+Use Nav2's `NavigateToPose` action client:
 
-### Parameters
-`~/move_base/RRTPlannerROS/goal_tolerance` (`double`, default: 0.20)
-- Goal tolerance (in meters) to be achieved by the global planner.
+```python
+from nav2_simple_commander.robot_navigator import BasicNavigator
+from geometry_msgs.msg import PoseStamped
 
-`~/move_base/RRTPlannerROS/rrt/step` (`double`, default: 0.20)
-- Distance (in meters) to extend tree per iteration.
+navigator = BasicNavigator()
+goal = PoseStamped()
+goal.header.frame_id = 'map'
+goal.pose.position.x = 1.0
+goal.pose.position.y = 0.5
+navigator.goToPose(goal)
+```
 
-`~/move_base/RRTPlannerROS/rrt/min_num_nodes` (`int`, default: 200)
-- Minumum number of iterations to attempt to find a plan.
+See https://docs.nav2.org/tutorials/docs/navigate_to_pose.html for a complete example.
 
-`~/move_base/RRTPlannerROS/rrt/max_num_nodes` (`int`, default: 5,000)
-- Maximum number of iterations to attempt to find a plan.
+## Parameters
 
+Parameters are set in `config/rrt_planner_nav2_params.yaml` and can be tuned to explore different RRT behaviours (see Mini-Project 2, Task 1b):
 
-### Services
-None.
+| Parameter | Default | Description |
+|---|---|---|
+| `goal_tolerance` | 0.20 m | Distance to goal that counts as success |
+| `rrt.step` | 0.20 m | Tree extension step size |
+| `rrt.min_num_nodes` | 200 | Minimum iterations before checking goal tolerance |
+| `rrt.max_num_nodes` | 5000 | Maximum iterations before giving up |
+
+## Collision detection
+
+Collision checking uses `nav2_costmap_2d` (the ROS 2 replacement for `costmap_2d`). The `CollisionDetector` class queries the global costmap to detect obstacles during tree extension. Refer to https://docs.nav2.org/configuration/packages/configuring-costmaps.html for costmap configuration.
+
+## Published topics
+
+| Topic | Type | Description |
+|---|---|---|
+| `/plan` | `nav_msgs/msg/Path` | The global path computed by the RRT planner (for visualisation in RViz2 / Foxglove) |

@@ -1,7 +1,10 @@
-<library path="lib/librrt_planner">
-  <class name="rrt_planner/RRTPlannerROS" type="rrt_planner::RRTPlannerROS" base_class_type="nav_core::BaseGlobalPlanner">
+<library path="rrt_planner">
+  <class name="rrt_planner/RRTPlannerROS"
+         type="rrt_planner::RRTPlannerROS"
+         base_class_type="nav2_core::GlobalPlanner">
     <description>
-        This is RRTPlannerROS plugin by Joao Pinto, Rita Cunha, and Andre Nogueira.
+      RRT-based global planner plugin for Nav2 (ROS 2).
+      Skeleton for students to implement their own RRT variant.
     </description>
   </class>
 </library>

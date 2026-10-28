@@ -1,47 +1,66 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(rrt_planner)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-## Find catkin macros and libraries
-find_package(catkin REQUIRED COMPONENTS
-  costmap_2d
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(nav2_core REQUIRED)
+find_package(nav2_costmap_2d REQUIRED)
+find_package(nav2_util REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(pluginlib REQUIRED)
+
+set(dependencies
+  rclcpp
+  rclcpp_lifecycle
+  nav2_core
+  nav2_costmap_2d
+  nav2_util
   geometry_msgs
   nav_msgs
-  tf2_geometry_msgs
   tf2
-  nav_core
+  tf2_geometry_msgs
+  tf2_ros
   pluginlib
-  roscpp
 )
 
-###################################
-## catkin specific configuration ##
-###################################
+include_directories(include)
 
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS costmap_2d geometry_msgs nav_msgs tf2_geometry_msgs tf2 nav_core pluginlib roscpp
-)
-
-###########
-## Build ##
-###########
-
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
-
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
   src/rrt_planner_ros.cpp
   src/rrt_planner.cpp
   src/collision_detector.cpp
   src/random_double_generator.cpp
 )
 
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+ament_target_dependencies(${PROJECT_NAME} ${dependencies})
+
+pluginlib_export_plugin_description_file(nav2_core rrt_planner_plugin.xml)
+
+install(TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
+
+install(DIRECTORY include/
+  DESTINATION include/
+)
+
+install(DIRECTORY launch config rviz
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
+ament_export_dependencies(${dependencies})
+
+ament_package()

@@ -1,0 +1,18 @@
+# Nav2 parameter file that sets rrt_planner/RRTPlannerROS as the global planner.
+#
+# Pass this file to the navigation launch with:
+#   params_file:=<path>/rrt_planner_nav2_params.yaml
+#
+# The planner_server will load the RRTPlannerROS plugin under the name "RRT".
+# All parameters are prefixed with "RRT." as expected by configure().
+
+planner_server:
+  ros__parameters:
+    planner_plugins: ["RRT"]
+
+    RRT:
+      plugin: "rrt_planner/RRTPlannerROS"
+      goal_tolerance: 0.20       # metres — how close to goal counts as success
+      rrt.step: 0.20             # metres — tree extension step size
+      rrt.min_num_nodes: 200     # minimum iterations before checking goal tolerance
+      rrt.max_num_nodes: 5000    # maximum iterations before giving up
