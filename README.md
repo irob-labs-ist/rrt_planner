@@ -34,7 +34,7 @@ The Nav2 interface (`rrt_planner_ros.cpp`) and the ROS 2 build system (`CMakeLis
 
 ```bash
 cd ~/ros2_ws/src
-git clone https://github.com/irob-labs-ist/rrt_planner.git -b ros2
+git clone https://github.com/irob-labs-ist/rrt_planner.git
 
 cd ~/ros2_ws
 rosdep install --from-paths src --ignore-src -r -y
@@ -74,15 +74,27 @@ Use the **2D Goal Pose** tool in RViz2 to send a `NavigateToPose` goal. The RRT 
 Use Nav2's `NavigateToPose` action client:
 
 ```python
+import rclpy
 from nav2_simple_commander.robot_navigator import BasicNavigator
 from geometry_msgs.msg import PoseStamped
 
+rclpy.init()
 navigator = BasicNavigator()
+navigator.waitUntilNav2Active()
+
 goal = PoseStamped()
 goal.header.frame_id = 'map'
+goal.header.stamp = navigator.get_clock().now().to_msg()
 goal.pose.position.x = 1.0
 goal.pose.position.y = 0.5
+goal.pose.orientation.w = 1.0
 navigator.goToPose(goal)
+
+while not navigator.isTaskComplete():
+    pass
+
+print(navigator.getResult())
+rclpy.shutdown()
 ```
 
 See https://docs.nav2.org/tutorials/docs/navigate_to_pose.html for a complete example.
